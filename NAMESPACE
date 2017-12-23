@@ -1,0 +1,3 @@
+useDynLib(tim)
+importFrom(Rcpp, evalCpp)
+exportPattern("^[[:alpha:]]+")
