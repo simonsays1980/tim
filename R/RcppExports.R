@@ -5,19 +5,19 @@ lee_ready_vector <- function(price, bidprice, askprice) {
     .Call('_tim_lee_ready_vector', PACKAGE = 'tim', price, bidprice, askprice)
 }
 
-rcpparma_hello_world <- function() {
-    .Call('_tim_rcpparma_hello_world', PACKAGE = 'tim')
+nocb_1min_vector <- function(price, tradetime) {
+    .Call('_tim_nocb_1min_vector', PACKAGE = 'tim', price, tradetime)
 }
 
-rcpparma_outerproduct <- function(x) {
-    .Call('_tim_rcpparma_outerproduct', PACKAGE = 'tim', x)
+nocb_1min_dataframe <- function(price, tradetime) {
+    .Call('_tim_nocb_1min_dataframe', PACKAGE = 'tim', price, tradetime)
 }
 
-rcpparma_innerproduct <- function(x) {
-    .Call('_tim_rcpparma_innerproduct', PACKAGE = 'tim', x)
+nocb_5min_vector <- function(price, tradetime) {
+    .Call('_tim_nocb_5min_vector', PACKAGE = 'tim', price, tradetime)
 }
 
-rcpparma_bothproducts <- function(x) {
-    .Call('_tim_rcpparma_bothproducts', PACKAGE = 'tim', x)
+nocb_5min_dataframe <- function(price, tradetime) {
+    .Call('_tim_nocb_5min_dataframe', PACKAGE = 'tim', price, tradetime)
 }
 
