@@ -1,12 +1,13 @@
 Package: tim
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
+Title: Estimation of Trade Indicator Models
+Version: 0.1.0
 Date: 2017-12-17
 Author: Lars Simon Zehnder
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Maintainer: <simon.zehnder@gmail.com>
+Description: A fast tool to estimate trade indicator models and to prepare the data. The implemented functions are intended to be used with dplyr.
+License: MIT
 Depends: dse (>= 2015.12.1)
 Imports: Rcpp (>= 0.12.14), gmm (>= 1.6-1), sandwich (>= 2.4.0)
 LinkingTo: Rcpp, RcppArmadillo
+RoxygenNote: 6.0.1
