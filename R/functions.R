@@ -176,3 +176,7 @@ nocb_5min_df <- function( price, time_stamp ) {
 lee_ready_vec <- function( price, bid_price, ask_price ) {
   return( lee_ready_vector( price, bid_price, ask_price ) )
 }
+
+aggregate_orders <- function( tbl_data ) {
+  return( aggregate_orders_tbl( tbl_data ) )
+}

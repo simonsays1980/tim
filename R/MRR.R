@@ -102,7 +102,7 @@ estimate_mrr <- function( price_diff, price, indicator, indicator_lag,
                         rho_p = double(), r2 = double(), r2_adj = double(), 
                         f_test = double(), f_pval = double(), theta_start = double(), 
                         phi_start = double(), rho_start = double(), eps_std = double(),
-                        eta_std = double(), spread_eff = double(), spread_eff_std = double(),
+                        eta_std = double(), spread_eff_est = double(), spread_eff_std = double(),
                         spread_eff_emp = double(), spread_eff_emp_std = double(), 
                         spread_eff_emp_se = double(), spread_eff_emp_med = double(), 
                         spread_quoted = double(), spread_quoted_std = double(), 
@@ -128,14 +128,14 @@ estimate_mrr <- function( price_diff, price, indicator, indicator_lag,
   output[1, 13]  <- summry$coefficients[3, 4]  # rho p-val
   
   # statistics
-  fitted.vals    <- ( output[1, 5] + output[1, 1] ) * features[,2] - 
-    ( output[1, 5] + output[1, 9] * output[1, 1] ) * features[,3]
+  fitted.vals    <- ( output[1, 2] + output[1, 6] ) * features[,2] - 
+    ( output[1, 2] + output[1, 6] * output[1, 10] ) * features[,3]
   SSE            <- sum( ( fitted.vals - mean( fitted.vals ) )^2 )
   SST            <- sum( ( features[,1] - mean( features[,1] ) )^2 )
-  output[1, 14]  <- SSE / SST # R2
-  output[1, 15]  <- 1 - ( result$n - 1 ) / ( result$n - 2 ) * ( 1 - output[1, 13] ) # R adj.
-  output[1, 16]  <- ( result$n - 2 ) / 2 * output[1, 13] / ( 1 - output[1, 13] ) # F-stat
-  output[1, 17]  <- pf( output[1, 15], result$n - 2, 2, result$n, lower.tail = FALSE ) # F p-val
+  output[1, 14]  <- SSE / SST                                                          # R2
+  output[1, 15]  <- 1 - ( result$n - 1 ) / ( result$n - 2 ) * ( 1 - output[1, 14] )    # R adj.
+  output[1, 16]  <- ( result$n - 2 ) / 2 * output[1, 14] / ( 1 - output[1, 14] )       # F-stat
+  output[1, 17]  <- pf( output[1, 16], result$n - 2, 2, result$n, lower.tail = FALSE ) # F p-val
   
   # starting values
   output[1, 18]  <- 0.03      # theta start
@@ -143,13 +143,13 @@ estimate_mrr <- function( price_diff, price, indicator, indicator_lag,
   output[1, 20]  <- 0.2       # rho start
   
   # residuals - epsilon & eta
-  epsilon        <- dmid - output[1, 1] * indicator + output[1, 9] * output[1, 1] * indicator_lag
+  epsilon        <- dmid - output[1, 2] * indicator + output[1, 10] * output[1, 2] * indicator_lag
   output[1, 21]  <- sd( epsilon ) 
   output[1, 22]  <- sd( price_diff - fitted.vals - epsilon ) # eta se
   
   # spreads
   ## estimated effective spread
-  output[1, 23]  <- 2 * ( output[1, 5] + output[1, 1] ) # est. eff. spread
+  output[1, 23]  <- 2 * ( output[1, 2] + output[1, 6] ) # est. eff. spread
   nabla          <- as.matrix( c( 2, 2, 0 ) )
   vcov           <- as.matrix( result$vcov )
   output[1, 24]  <- sqrt( t( nabla ) %*% vcov %*% nabla ) # est. eff. spread se
