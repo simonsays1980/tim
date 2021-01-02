@@ -180,3 +180,7 @@ lee_ready_vec <- function( price, bid_price, ask_price ) {
 aggregate_orders <- function( tbl_data ) {
   return( aggregate_orders_tbl( tbl_data ) )
 }
+
+test_func_tbl <- function( tbl_data ) {
+  return( test_func( tbl_data ) )
+}

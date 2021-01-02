@@ -95,18 +95,31 @@ estimate_mrr <- function( price_diff, price, indicator, indicator_lag,
   summry <- summary( result ) 
   
   # create output object
-  output <- data.frame( n = integer(), theta = double(), theta_std = double(), 
-                        theta_t = double(), theta_p = double(), phi = double(), 
-                        phi_std = double(), phi_t = double(), phi_p = double(), 
-                        rho = double(), rho_std = double(), rho_t = double(), 
-                        rho_p = double(), r2 = double(), r2_adj = double(), 
-                        f_test = double(), f_pval = double(), theta_start = double(), 
-                        phi_start = double(), rho_start = double(), eps_std = double(),
-                        eta_std = double(), spread_eff_est = double(), spread_eff_std = double(),
-                        spread_eff_emp = double(), spread_eff_emp_std = double(), 
-                        spread_eff_emp_se = double(), spread_eff_emp_med = double(), 
-                        spread_quoted = double(), spread_quoted_std = double(), 
-                        spread_quoted_se = double(), spread_quoted_med = double() )
+  if ( !missing( spread_quoted ) ) {
+    output <- data.frame( n = integer(), theta = double(), theta_std = double(), 
+                          theta_t = double(), theta_p = double(), phi = double(), 
+                          phi_std = double(), phi_t = double(), phi_p = double(), 
+                          rho = double(), rho_std = double(), rho_t = double(), 
+                          rho_p = double(), r2 = double(), r2_adj = double(), 
+                          f_test = double(), f_pval = double(), theta_start = double(), 
+                          phi_start = double(), rho_start = double(), eps_std = double(),
+                          eta_std = double(), spread_eff_est = double(), spread_eff_std = double(),
+                          spread_eff_emp = double(), spread_eff_emp_std = double(), 
+                          spread_eff_emp_se = double(), spread_eff_emp_med = double(), 
+                          spread_quoted = double(), spread_quoted_std = double(), 
+                          spread_quoted_se = double(), spread_quoted_med = double() )
+  } else {
+    output <- data.frame( n = integer(), theta = double(), theta_std = double(), 
+                          theta_t = double(), theta_p = double(), phi = double(), 
+                          phi_std = double(), phi_t = double(), phi_p = double(), 
+                          rho = double(), rho_std = double(), rho_t = double(), 
+                          rho_p = double(), r2 = double(), r2_adj = double(), 
+                          f_test = double(), f_pval = double(), theta_start = double(), 
+                          phi_start = double(), rho_start = double(), eps_std = double(),
+                          eta_std = double(), spread_eff_est = double(), spread_eff_std = double(),
+                          spread_eff_emp = double(), spread_eff_emp_std = double(), 
+                          spread_eff_emp_se = double(), spread_eff_emp_med = double() )
+  }
   
   # number of observations
   output[1, 1]  <- result$n  # obs
@@ -159,10 +172,12 @@ estimate_mrr <- function( price_diff, price, indicator, indicator_lag,
   output[1, 26]  <- sd( spread.eff )   # emp. eff. spread sd
   output[1, 27]  <- sd( spread.eff ) / sqrt( n ) # emp. eff. spread se  
   output[1, 28]  <- quantile( spread.eff, probs = c( .5 ), type = 5 ) # emp. eff. spread med
-  output[1, 29]  <- mean( spread_quoted ) # quoted spread
-  output[1, 30]  <- sd( spread_quoted ) # quoted spread sd
-  output[1, 31]  <- sd( spread_quoted ) / sqrt( n ) # quoted spread se
-  output[1, 32]  <- quantile( spread_quoted, probs = c( .5 ), type = 5 ) # med. spread quoted
+  if ( !missing( spread_quoted ) ) {
+    output[1, 29]  <- mean( spread_quoted ) # quoted spread
+    output[1, 30]  <- sd( spread_quoted ) # quoted spread sd
+    output[1, 31]  <- sd( spread_quoted ) / sqrt( n ) # quoted spread se
+    output[1, 32]  <- quantile( spread_quoted, probs = c( .5 ), type = 5 ) # med. spread quoted
+  }
   
   return( output )
 }
@@ -332,6 +347,108 @@ estimate_mrr_mod <- function( price_diff, price, indicator, indicator_lag, indic
   
   # store stability classifier
   output[1, 18]   <- stable
+  
+  return( output ) 
+}
+
+estimate_mrr_mod_new <- function( price_diff, price, indicator, indicator_lag, indicator_lag2,
+                             midquote, midquote_lag ) 
+{
+  output <- data.frame( n = integer(), rho = double(), rho_std = double(), a1 = double(), 
+                        a1_std = double(), psi1 = double(), 
+                        psi1_std = double(), psi2 = double(), psi2_std = double(), 
+                        varv = double(), varu = double(), covuv = double(), 
+                        spread_eff_emp = double(), spread_eff_est1 = double(),
+                        spread_eff_est2 = double(), stable = logical() )
+  
+  # define starting parameters
+  phi             <- .01
+  rho             <- .2
+  
+  # define the AR component of the VARMA model
+  AR              <- array( c( 1, 0, 0, 0, 0, -phi * ( rho - 1 ), 1, -rho ), c( 2, 2, 2 ) )
+  
+  # define the MA component of the VARMA model
+  MA              <- array( c( 1, 0, 0, 1 ), c( 1, 2, 2 ) )
+  
+  # define the VARMA model
+  # as `dse` package is simply loaded but not attached to the search path 
+  # a namespace has to be used
+  arma            <- dse::ARMA( A = AR, B = MA, C = NULL )
+  
+  output[1, 1]    <- length( price_diff ) # n
+  
+  # estimate v_t and sigma(v_t)
+  res1            <- lm( indicator ~ 0 + indicator_lag )
+  vt              <- res1$residuals
+  #vtlag           <- vt[1:length( vt ) - 1]
+  varv            <- var( vt )
+  
+  # calculate the midquote difference
+  dmid            <- midquote - midquote_lag
+  
+  # bring `dmid` time series to the same length as `vtlag`
+  #dmid            <- dmid[2:length( dmid )]
+  
+  # compute second difference 
+  #dq              <- indicator_lag - indicator_lag2
+  
+  # bring `dq` time series to the same length as `vtlag`
+  #dq              <- dq[2:length( dq )]
+  
+  # estimate u_t, sigma(u_t), and cov(v_t,u_t)
+  res2            <- lm( dmid ~ 0 + indicator_lag )
+  ut              <- res2$residuals
+  varu            <- var( ut )
+  covuv           <- cov( ut, vt )
+  
+  # estimate the VARMA model
+  arma_dat        <- dse::TSdata( input = NULL, output = cbind( price_diff, indicator ) )
+  arma_est        <- dse::estMaxLik( arma, arma_dat, algorithm.args=list(method="BFGS", upper=Inf, lower=-Inf, hessian=TRUE,
+                                                                         control=list(maxit=10000)) )
+  stable          <- dse::stability( arma_est, verbose = FALSE )
+  res_cov         <- arma_est$estimates$cov
+  spread_eff_emp  <- mean( indicator * ( price - midquote ) * 2, na.rm = TRUE )
+  spread_eff_est1 <- res_cov[1, 2] / res_cov[2, 2] * 2
+  spread_eff_est2 <- ( res_cov[1, 2] - covuv ) / res_cov[2, 2] * 2
+  
+  # store rho 
+  output[1, 2]    <- res1$coefficients[1]                                   # rho
+  
+  # store HAC consistent standard errors for rho
+  output[1, 3]    <- sqrt( sandwich::NeweyWest( res1 )[1, 1] )
+  
+  # calculate HAC consistent standard errors for a1 and a2
+  step2cov        <- sqrt( diag( sandwich::NeweyWest( res2 ) ) )
+  
+  # store a1 and a2
+  output[1, 4]    <- res2$coefficients[1]                                   # a1
+  output[1, 5]    <- step2cov[1]
+  #output[1, 6]    <- res2$coefficients[2]                                   # a2
+  #output[1, 7]    <- step2cov[2]
+  
+  # calculate standard errors for psi1 and psi2 by inverting the hessian
+  minv            <- solve( arma_est$estimates$results$hessian )
+  minv            <- sqrt( diag( minv ) )
+  
+  # store psi1 and psi2  
+  output[1, 6]    <- -arma_est$estimates$results$par[1]                     # psi1
+  output[1, 7]    <- minv[1]
+  output[1, 8]   <- -arma_est$estimates$results$par[2]                     # psi2
+  output[1, 9]   <- minv[2]
+  
+  # store var(u_t), var(v_t), and cov(u_t,v_t)
+  output[1, 10]   <- varv                                                   # varv
+  output[1, 11]   <- varu                                                   # varu
+  output[1, 12]   <- covuv
+  
+  # store spread estimates
+  output[1, 13]   <- spread_eff_emp       # spread_eff_emp
+  output[1, 14]   <- spread_eff_est1      # spread est from MRR
+  output[1, 15]   <- spread_eff_est2      # spread est from MRR modified
+  
+  # store stability classifier
+  output[1, 16]   <- stable
   
   return( output ) 
 }
