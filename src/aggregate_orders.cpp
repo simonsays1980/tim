@@ -19,7 +19,7 @@ DataFrame test_func( DataFrame table ){
   return DataFrame::create( Named( "timestamp_out", out.getDatetimes() ) );
 }
 // [[Rcpp::export]]
-DataFrame aggregate_orders_tbl( DataFrame table ) {
+DataFrame aggregate_orders_tbl_deprecated( DataFrame table ) {
   
   // Input
   DatetimeVector timestamp_in    = table["timestamp"] ;
@@ -59,22 +59,50 @@ DataFrame aggregate_orders_tbl( DataFrame table ) {
   for ( int i = 1; i < n_in; ++i ) {
     Datetime dt     = timestamp_in[i];
     Datetime dt_lag = timestamp_in[i-1];
-    
+    // Rcout << "i out: " << i << "\n";
+    // Rcout << "order_count out: " << order_count << "\n";
+    // Rcout << "total_count out: " << total_count << "\n";
+    // Rcout << "yearday i: " << dt.getYearday() << "\n";
+    // Rcout << "yearday i-1: " << dt_lag.getYearday() << "\n";
+    // Rcout << "order_id i: " << aggr_order_id_in[i] << "\n";
+    // Rcout << "order_id i-1: " << aggr_order_id_in[i-1] << "\n";
+    // Rcout << "trade i: " << trade_in[i] << "\n";
+    // Rcout << "trade i-1: " << trade_in[i-1] << "\n";
+    // Rcout << "buysell i: " << buysell_in[i] << "\n";
+    // Rcout << "buysell i-1: " << buysell_in[i-1] << "\n";
+    //if ( ( i % 10000 ) == 0 ) {
+    //  Rcout << "\rRow: " << i;
+    //}
     if ( wkn_in[i] == wkn_in[i-1] &&
          dt.getYearday() == dt_lag.getYearday() &&
-         aggr_order_id_in[i] != NA_REAL &&
+         !NumericVector::is_na( aggr_order_id_in[i] ) &&
          aggr_order_id_in[i] == aggr_order_id_in[i-1] &&
          trade_in[i] != 0 &&
          buysell_in[i] == buysell_in[i-1] ) {
       // No further row gets appended
       order_count += 1;
+      // Counts the total number of order aggregations
+      // Helps to adjust the index over the whole data set
       total_count += 1;
-      price_out[i-total_count] = price_out[i-total_count] + price_in[i];
-      volume_out[i-total_count] = volume_out[i-total_count] + volume_in[i];
+      price_out[i-total_count] += price_in[i];
+      volume_out[i-total_count] += volume_in[i];
+      if ( i + 1 == n_in ) {
+        price_out[i-total_count] /= order_count;
+      }
     } else {
+      // Rcout << "    i: " << i << "\n";
+      // Rcout << "    order_count: " << order_count << "\n";
+      // Rcout << "    total_count: " << total_count << "\n";
       // further row gets appended
       if ( order_count > 1 ) {
-        price_out[i-total_count-1] = price_out[i-total_count-1] / order_count;
+        // Rcout << "        price before : " << price_out[i-total_count-1] << "\n";
+        price_out[i-total_count-1] /=  order_count;
+        if ( price_out[i-total_count-1] > 30.0 ) {
+          Rcout << "        i: " << i << "\n";
+          Rcout << "        order_count: " << order_count << "\n";
+          Rcout << "        total_count: " << total_count << "\n";
+          Rcout << "        price after : " << price_out[i-total_count-1] << "\n";
+        }
         order_count = 1;
       }
       // Append all input values to the vector output.
@@ -119,6 +147,88 @@ DataFrame aggregate_orders_tbl( DataFrame table ) {
                                            Named( "stringsAsFactors") = false );
 }
 
+// [[Rcpp::export]]
+DataFrame aggregate_orders_tbl( DataFrame table ) {
+  
+  // Input
+  DatetimeVector timestamp_in    = table["timestamp"] ;
+  NumericVector aggr_order_id_in = table["aggr_order_id"];
+  NumericVector buysell_in       = table["buysell"];
+  NumericVector midquote_in      = table["midquote"];
+  NumericVector price_in         = table["price"];
+  IntegerVector trade_in         = table["trade"];
+  NumericVector volume_in        = table["volume"];
+  CharacterVector wkn_in         = table["wkn"];
+  
+  // Output
+  const int n_in = price_in.size();
+  LogicalVector keep_out( n_in );
+  
+  // First row
+  keep_out[0] = true;
+  
+  // Aggregate orders
+  int order_count = 0;
+  int order_count_copy = 0;
+  for ( int i = 1; i < n_in; ++i ) {
+    Datetime dt     = timestamp_in[i];
+    Datetime dt_lag = timestamp_in[i-1];
+    if ( wkn_in[i] == wkn_in[i-1] &&
+         dt.getYearday() == dt_lag.getYearday() &&
+         !NumericVector::is_na( aggr_order_id_in[i] ) &&
+         aggr_order_id_in[i] == aggr_order_id_in[i-1] &&
+         trade_in[i] != 0 &&
+         buysell_in[i] == buysell_in[i-1] ) {
+      // This row is marked not to be kept
+      order_count += 1;
+      // Counts the total number of order aggregations
+      // Helps to adjust the index over the whole data set
+      price_in[i-order_count] += price_in[i];
+      volume_in[i-order_count] += volume_in[i];
+      if ( i + 1 == n_in ) {
+        price_in[i-order_count] /= ( order_count + 1 );
+      }
+      keep_out[i] = false;
+    } else {
+      // This row is marked to be kept
+      order_count_copy = order_count;
+      if ( order_count > 0 ) {
+        price_in[i-order_count-1] /=  ( order_count + 1 );
+        order_count = 0;
+      }
+      // If entry i is a quote use the last midpoint otherwise 
+      // use the last midquote.
+      if ( trade_in[i] != 0 ) {
+        midquote_in[i] = midquote_in[i-order_count_copy-1]; 
+      }
+      keep_out[i] = true;
+    }
+  }
+  
+  // for( int i = 0; i < price_out.length(); ++i) {
+  //   Rcout << "=======\n";
+  //   Rcout << "i: " << i << "\n";
+  //   Rcout << "total_count: " << total_count << "\n";
+  //   Rcout << "timestamp: " << timestamp_out[i] << "\n";
+  //   Rcout << "aggr_order_id: " << aggr_order_id_out[i] << "\n";
+  //   Rcout << "buysell: " << buysell_out[i] << "\n";
+  //   Rcout << "midquote: " << midquote_out[i] << "\n";
+  //   Rcout << "price: " << price_out[i] << "\n";
+  //   Rcout << "volume: " << volume_out[i] << "\n";
+  //   Rcout << "wkn: " << wkn_out[i] << "\n\n";
+  // }
+  
+  return DataFrame::create( Named( "timestamp" )     = timestamp_in.getDatetimes(),
+                            Named( "aggr_order_id" ) = aggr_order_id_in,
+                            Named( "buysell" )       = buysell_in,
+                            Named( "midquote" )      = midquote_in,
+                            Named( "price" )         = price_in,
+                            Named( "trade" )         = trade_in,
+                            Named( "volume" )        = volume_in,
+                            Named( "wkn" )           = wkn_in,
+                            Named( "keep" )          = keep_out,
+                            Named( "stringsAsFactors") = false );
+}
 
 // You can include R code blocks in C++ files processed with sourceCpp
 // (useful for testing and development). The R code will be automatically 

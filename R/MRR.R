@@ -301,6 +301,8 @@ estimate_mrr_mod <- function( price_diff, price, indicator, indicator_lag, indic
   varu            <- var( ut )
   covuv           <- cov( ut, vt[2:length( vt )] )
   
+  # needs to be set to avoid the error of .DSEflags()$COMPILED empty
+  dse::.DSEflags(list(COMPILED=TRUE))
   # estimate the VARMA model
   arma_dat        <- dse::TSdata( input = NULL, output = cbind( price_diff, indicator ) )
   arma_est        <- dse::estMaxLik( arma, arma_dat )
@@ -402,6 +404,8 @@ estimate_mrr_mod_new <- function( price_diff, price, indicator, indicator_lag, i
   varu            <- var( ut )
   covuv           <- cov( ut, vt )
   
+  # needs to be set to avoid the error of .DSEflags()$COMPILED empty
+  dse::.DSEflags(list(COMPILED=TRUE))
   # estimate the VARMA model
   arma_dat        <- dse::TSdata( input = NULL, output = cbind( price_diff, indicator ) )
   arma_est        <- dse::estMaxLik( arma, arma_dat, algorithm.args=list(method="BFGS", upper=Inf, lower=-Inf, hessian=TRUE,

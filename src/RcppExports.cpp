@@ -17,6 +17,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// aggregate_orders_tbl_deprecated
+DataFrame aggregate_orders_tbl_deprecated(DataFrame table);
+RcppExport SEXP _tim_aggregate_orders_tbl_deprecated(SEXP tableSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< DataFrame >::type table(tableSEXP);
+    rcpp_result_gen = Rcpp::wrap(aggregate_orders_tbl_deprecated(table));
+    return rcpp_result_gen;
+END_RCPP
+}
 // aggregate_orders_tbl
 DataFrame aggregate_orders_tbl(DataFrame table);
 RcppExport SEXP _tim_aggregate_orders_tbl(SEXP tableSEXP) {
@@ -92,6 +103,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_tim_test_func", (DL_FUNC) &_tim_test_func, 1},
+    {"_tim_aggregate_orders_tbl_deprecated", (DL_FUNC) &_tim_aggregate_orders_tbl_deprecated, 1},
     {"_tim_aggregate_orders_tbl", (DL_FUNC) &_tim_aggregate_orders_tbl, 1},
     {"_tim_lee_ready_vector", (DL_FUNC) &_tim_lee_ready_vector, 3},
     {"_tim_nocb_1min_vector", (DL_FUNC) &_tim_nocb_1min_vector, 2},

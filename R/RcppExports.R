@@ -5,6 +5,10 @@ test_func <- function(table) {
     .Call('_tim_test_func', PACKAGE = 'tim', table)
 }
 
+aggregate_orders_tbl_deprecated <- function(table) {
+    .Call('_tim_aggregate_orders_tbl_deprecated', PACKAGE = 'tim', table)
+}
+
 aggregate_orders_tbl <- function(table) {
     .Call('_tim_aggregate_orders_tbl', PACKAGE = 'tim', table)
 }
